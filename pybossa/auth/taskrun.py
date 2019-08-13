@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with PYBOSSA.  If not, see <http://www.gnu.org/licenses/>.
 
-from flask import abort
+from flask import abort, current_app
 
 
 class TaskRunAuth(object):
@@ -47,7 +47,7 @@ class TaskRunAuth(object):
             task_id=taskrun.task_id,
             user_id=taskrun.user_id,
             user_ip=taskrun.user_ip,
-            external_uid=taskrun.external_uid) <= 0
+            external_uid=taskrun.external_uid) <= 5 #TODO FIX HERE FOR CONTRIBUTING AGAIN
 
         if not authorized:
             raise abort(403)

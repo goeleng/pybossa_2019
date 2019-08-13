@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with PYBOSSA.  If not, see <http://www.gnu.org/licenses/>.
 
-DEBUG = False
+DEBUG = True
 
 # webserver host and port
 HOST = '0.0.0.0'
@@ -54,7 +54,7 @@ UPLOAD_METHOD = 'local'
 LEADERBOARD = 20
 
 ## Default configuration for debug toolbar
-ENABLE_DEBUG_TOOLBAR = False
+ENABLE_DEBUG_TOOLBAR = True
 
 # Cache default key prefix
 REDIS_SENTINEL = [('localhost', 26379)]

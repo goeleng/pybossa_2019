@@ -17,6 +17,7 @@
 # along with PYBOSSA.  If not, see <http://www.gnu.org/licenses/>.
 
 from flask_babel import gettext
+from flask import current_app
 from .csv import BulkTaskCSVImport, BulkTaskGDImport, BulkTaskLocalCSVImport
 from .dropbox import BulkTaskDropboxImport
 from .flickr import BulkTaskFlickrImport
@@ -25,6 +26,7 @@ from .youtubeapi import BulkTaskYoutubeImport
 from .epicollect import BulkTaskEpiCollectPlusImport
 from .iiif import BulkTaskIIIFImporter
 from .s3 import BulkTaskS3Import
+from .localUploader  import BulkTaskLocalImporter
 
 class Importer(object):
 
@@ -37,7 +39,8 @@ class Importer(object):
                                epicollect=BulkTaskEpiCollectPlusImport,
                                s3=BulkTaskS3Import,
                                localCSV=BulkTaskLocalCSVImport,
-                               iiif=BulkTaskIIIFImporter)
+                               iiif=BulkTaskIIIFImporter,
+                               localUploader=BulkTaskLocalImporter)
         self._importer_constructor_params = dict()
 
     def register_flickr_importer(self, flickr_params):
@@ -66,6 +69,7 @@ class Importer(object):
         n = 0
         importer = self._create_importer_for(**form_data)
         for task_data in importer.tasks():
+            current_app.logger.info("TASK data %s", task_data)
             task = Task(project_id=project_id)
             [setattr(task, k, v) for k, v in task_data.iteritems()]
             found = task_repo.get_task_by(project_id=project_id, info=task.info)

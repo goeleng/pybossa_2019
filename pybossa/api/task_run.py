@@ -54,8 +54,8 @@ class TaskRunAPI(APIBase):
         """Update task_run object with user id or ip."""
         self.check_can_post(taskrun.project_id, taskrun.task_id, get_user_id_or_ip())
         task = task_repo.get_task(taskrun.task_id)
+        current_app.logger.info(task)
         guard = ContributionsGuard(sentinel.master)
-
         self._validate_project_and_task(taskrun, task)
         self._ensure_task_was_requested(task, guard)
         self._add_user_info(taskrun)

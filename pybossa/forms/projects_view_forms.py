@@ -28,4 +28,5 @@ from forms import (
     PasswordForm,
     GenericBulkTaskImportForm,
     AvatarUploadForm,
+    ProjectPicturesUploadForm,
     TransferOwnershipForm)

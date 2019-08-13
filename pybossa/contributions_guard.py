@@ -46,6 +46,6 @@ class ContributionsGuard(object):
             user_id = user['external_uid']
         return self.KEY_PREFIX % (user_id, task.id)
 
-    def _remove_task_stamped(self, task, user):
+    def _remove_task_stamped(self, task, user): # TODO use this to remove stamp for task to update it
         key = self._create_key(task, user)
         return self.conn.delete(key)

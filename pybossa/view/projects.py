@@ -85,22 +85,22 @@ def sanitize_project_owner(project, owner, current_user, ps=None):
     """Sanitize project and owner data."""
     if current_user.is_authenticated() and owner.id == current_user.id:
         if isinstance(project, Project):
-            project_sanitized = project.dictize()   # Project object
+            project_sanitized = project.dictize()  # Project object
         else:
-            project_sanitized = project             # dict object
+            project_sanitized = project  # dict object
         owner_sanitized = cached_users.get_user_summary(owner.name)
-    else:   # anonymous or different owner
+    else:  # anonymous or different owner
         if request.headers.get('Content-Type') == 'application/json':
             if isinstance(project, Project):
-                project_sanitized = project.to_public_json()            # Project object
+                project_sanitized = project.to_public_json()  # Project object
             else:
-                project_sanitized = Project().to_public_json(project)   # dict object
-        else:    # HTML
+                project_sanitized = Project().to_public_json(project)  # dict object
+        else:  # HTML
             # Also dictize for HTML to have same output as authenticated user (see above)
             if isinstance(project, Project):
-                project_sanitized = project.dictize()   # Project object
+                project_sanitized = project.dictize()  # Project object
             else:
-                project_sanitized = project             # dict object
+                project_sanitized = project  # dict object
         owner_sanitized = cached_users.public_get_user_summary(owner.name)
     if ps:
         project_sanitized['n_tasks'] = ps.n_tasks
@@ -317,10 +317,10 @@ def new():
                     '<strong><a href="https://docs.pybossa.com"> {}' +
                     '</a></strong> {}')
     flash(markup.format(
-              gettext('You can check the '),
-              gettext('Guide and Documentation'),
-              gettext('for adding tasks, a thumbnail, using PYBOSSA.JS, etc.')),
-          'success')
+        gettext('You can check the '),
+        gettext('Guide and Documentation'),
+        gettext('for adding tasks, a thumbnail, using PYBOSSA.JS, etc.')),
+        'success')
     auditlogger.add_log_entry(None, project, current_user)
 
     return redirect_content_type(url_for('.update',
@@ -398,7 +398,7 @@ def task_presenter_editor(short_name):
             return handle_content_type(response)
 
         tmpl_uri = "projects/snippets/%s.html" \
-            % request.args.get('template')
+                   % request.args.get('template')
         tmpl = render_template(tmpl_uri, project=project)
         form.editor.data = tmpl
         msg = 'Your code will be <em>automagically</em> rendered in \
@@ -492,7 +492,7 @@ def update(short_name):
         cached_projects.clean_project(new_project.id)
         flash(gettext('Project updated!'), 'success')
         return redirect_content_type(url_for('.details',
-                                     short_name=new_project.short_name))
+                                             short_name=new_project.short_name))
 
     ensure_authorized_to('read', project)
     ensure_authorized_to('update', project)
@@ -593,7 +593,7 @@ def details(short_name):
                                                                 ps)
     template_args = {"project": project_sanitized,
                      "title": title,
-                     "owner":  owner_sanitized,
+                     "owner": owner_sanitized,
                      "n_tasks": ps.n_tasks,
                      "n_task_runs": ps.n_task_runs,
                      "overall_progress": ps.overall_progress,
@@ -633,6 +633,45 @@ def settings(short_name):
                     pro_features=pro)
     return handle_content_type(response)
 
+@blueprint.route('/<short_name>/tasks/import/upload', methods=['POST'])
+@login_required
+def upload_import_task(short_name):
+    project, owner, ps = project_by_shortname(short_name)
+
+    current_app.logger.info('NEW post method accessed')
+    ensure_authorized_to('read', project)
+    ensure_authorized_to('update', project)
+
+    importer_type = request.form.get('form_name') or request.args.get('type')
+    all_importers = importer.get_all_importer_names()
+    if importer_type is not None and importer_type not in all_importers:
+        return abort(404)
+
+    filePaths = []
+    files = request.files.getlist("file")
+    for file in files:
+        if file:
+            prefix = time.time()
+            file.filename = "%s_%s_%s.png" % (prefix, file.filename, short_name)
+            current_app.logger.info(file.filename)
+            container = "project_%s" % short_name
+            filePaths.append('http://127.0.0.1:5000/uploads/' + container + '/' + file.filename)
+            uploader.upload_file(file, container=container, coordinates=None)
+    current_app.logger.info(filePaths)
+    taskData = dict(question="Wo ist es", localPaths=filePaths)
+    importData = dict(type='localUploader', localUploaderData=taskData)
+
+    try:
+        return _import_tasks(project, **importData)
+    except BulkImportException as err_msg:
+        flash(err_msg, 'error')
+    except Exception as inst:  # pragma: no cover
+        current_app.logger.error(inst)
+        msg = 'Oops! Looks like there was an error!'
+        flash(gettext(msg), 'error')
+
+    template_args['template'] = '/projects/importers/%s.html' % importer_type
+    return handle_content_type(template_args)
 
 @blueprint.route('/<short_name>/tasks/import', methods=['GET', 'POST'])
 @login_required
@@ -693,6 +732,8 @@ def import_task(short_name):
         if importer_type == 'gdocs' and request.args.get('template'):  # pragma: no cover
             template = request.args.get('template')
             form.googledocs_url.data = template_tasks.get(template)
+        if importer_type == 'localUploader':
+            template_args['upload_form'] = ProjectPicturesUploadForm()
         template_args['template'] = '/projects/importers/%s.html' % importer_type
         return handle_content_type(template_args)
 
@@ -741,7 +782,7 @@ def setup_autoimporter(short_name):
         current_autoimporter = project.get_autoimporter()
         importer_info = dict(**current_autoimporter)
         return render_template('/projects/task_autoimporter.html',
-                                importer=importer_info, **template_args)
+                               importer=importer_info, **template_args)
 
     if request.method == 'POST':
         if form.validate():  # pragma: no cover
@@ -759,7 +800,7 @@ def setup_autoimporter(short_name):
             return render_template('projects/task_autoimport_options.html',
                                    **template_args)
     return render_template('/projects/importers/%s.html' % importer_type,
-                                **template_args)
+                           **template_args)
 
 
 @blueprint.route('/<short_name>/tasks/autoimporter/delete', methods=['POST'])
@@ -795,10 +836,10 @@ def password_required(short_name):
             return passwd_mngr.update_response(response, project, get_user_id_or_ip())
         flash(gettext('Sorry, incorrect password'))
     return render_template('projects/password.html',
-                            project=project,
-                            form=form,
-                            short_name=short_name,
-                            next=request.args.get('next'))
+                           project=project,
+                           form=form,
+                           short_name=short_name,
+                           next=request.args.get('next'))
 
 
 @blueprint.route('/<short_name>/task/<int:task_id>')
@@ -822,7 +863,7 @@ def task_presenter(short_name, task_id):
             flash(Markup(gettext(msg)), 'warning')
             return redirect(url_for('account.signin',
                                     next=url_for('.presenter',
-                                    short_name=project.short_name)))
+                                                 short_name=project.short_name)))
         else:
             msg_1 = gettext(
                 "Ooops! You are an anonymous user and will not "
@@ -830,7 +871,7 @@ def task_presenter(short_name, task_id):
                 " for your contributions.")
             msg_2 = gettext('Sign in now!')
             next_url = url_for('project.task_presenter',
-                                short_name=short_name, task_id=task_id)
+                               short_name=short_name, task_id=task_id)
             url = url_for('account.signin', next=next_url)
             markup = Markup('{{}} <a href="{}">{{}}</a>'.format(url))
             flash(markup.format(msg_1, msg_2), "warning")
@@ -842,7 +883,7 @@ def task_presenter(short_name, task_id):
     template_args = {"project": project_sanitized, "title": title, "owner": owner_sanitized}
 
     def respond(tmpl):
-        response = dict(template = tmpl, **template_args)
+        response = dict(template=tmpl, **template_args)
         return handle_content_type(response)
 
     if not (task.project_id == project.id):
@@ -860,7 +901,6 @@ def task_presenter(short_name, task_id):
 @blueprint.route('/<short_name>/presenter')
 @blueprint.route('/<short_name>/newtask')
 def presenter(short_name):
-
     def invite_new_volunteers(project, ps):
         user_id = None if current_user.is_anonymous() else current_user.id
         user_ip = (anonymizer.ip(request.remote_addr or '127.0.0.1')
@@ -895,8 +935,8 @@ def presenter(short_name):
                project" % project.name
         flash(Markup(gettext(msg)), 'warning')
         return redirect(url_for('account.signin',
-                        next=url_for('.presenter',
-                                     short_name=project.short_name)))
+                                next=url_for('.presenter',
+                                             short_name=project.short_name)))
 
     msg = "Ooops! You are an anonymous user and will not \
            get any credit for your contributions. Sign in \
@@ -995,6 +1035,7 @@ def tasks(short_name):
                     pro_features=pro)
 
     return handle_content_type(response)
+
 
 @blueprint.route('/<short_name>/tasks/browse')
 @blueprint.route('/<short_name>/tasks/browse/<int:page>')
@@ -1297,7 +1338,7 @@ def show_stats(short_name):
     # (needs to be escaped for HTML)
     if request.headers.get('Content-Type') == 'application/json':
         handle_projectStats = projectStats
-    else:   # HTML
+    else:  # HTML
         handle_projectStats = json.dumps(projectStats)
 
     response = dict(template='/projects/stats.html',
@@ -1386,7 +1427,6 @@ def task_scheduler(short_name):
     form = TaskSchedulerForm(request.body)
     pro = pro_features()
 
-
     def respond():
         project_sanitized, owner_sanitized = sanitize_project_owner(project,
                                                                     owner,
@@ -1454,6 +1494,7 @@ def task_priority(short_name):
                         owner=owner_sanitized,
                         pro_features=pro)
         return handle_content_type(response)
+
     ensure_authorized_to('read', project)
     ensure_authorized_to('update', project)
 
@@ -1576,7 +1617,6 @@ def new_blogpost(short_name):
 
     project, owner, ps = project_by_shortname(short_name)
 
-
     form = BlogpostForm(request.form)
     del form.id
 
@@ -1608,7 +1648,6 @@ def new_blogpost(short_name):
 @blueprint.route('/<short_name>/<int:id>/update', methods=['GET', 'POST'])
 @login_required
 def update_blogpost(short_name, id):
-
     project, owner, ps = project_by_shortname(short_name)
 
     pro = pro_features()
@@ -1685,7 +1724,6 @@ def auditlog(short_name):
 
     project, owner, ps = project_by_shortname(short_name)
 
-
     ensure_authorized_to('read', Auditlog, project_id=project.id)
     logs = auditlogger.get_project_logs(project.id)
     project = add_custom_contrib_button_to(project, get_user_id_or_ip(), ps=ps)
@@ -1702,7 +1740,6 @@ def auditlog(short_name):
 @blueprint.route('/<short_name>/publish', methods=['GET', 'POST'])
 @login_required
 def publish(short_name):
-
     project, owner, ps = project_by_shortname(short_name)
     project_sanitized, owner_sanitized = sanitize_project_owner(project, owner,
                                                                 current_user,
@@ -1848,7 +1885,7 @@ def results(short_name):
                      "pro_features": pro,
                      "n_results": ps.n_results}
 
-    response = dict(template = '/projects/results.html', **template_args)
+    response = dict(template='/projects/results.html', **template_args)
 
     return handle_content_type(response)
 
@@ -1863,7 +1900,6 @@ def reset_secret_key(short_name):
 
     project, owner, ps = project_by_shortname(short_name)
 
-
     title = project_title(project, "Results")
 
     ensure_authorized_to('update', project)
@@ -1873,6 +1909,44 @@ def reset_secret_key(short_name):
     msg = gettext('New secret key generated')
     flash(msg, 'success')
     return redirect_content_type(url_for('.update', short_name=short_name))
+
+
+#TODO extract to plugin
+@blueprint.route('/<short_name>/finished', methods=['GET'])
+def finished(short_name):
+    """Results finished for the project."""
+
+    project, owner, ps = project_by_shortname(short_name)
+
+    title = project_title(project, "Finished")
+
+    ensure_authorized_to('read', project)
+    myprojectid = project.id
+    pro = pro_features()
+
+    title = project_title(project, None)
+    project = add_custom_contrib_button_to(project, get_user_id_or_ip(), ps=ps)
+
+    project_sanitized, owner_sanitized = sanitize_project_owner(project, owner,
+                                                                current_user,
+                                                                ps)
+    user_info = get_user_id_or_ip()
+    results = cached_users.get_project_finished_task_for_user_id(myprojectid, user_info['user_id'])
+    #TODO here get information and provide it to dict
+    template_args = {"project": project_sanitized,
+                     "title": title,
+                     "owner": owner_sanitized,
+                     "n_tasks": ps.n_tasks,
+                     "n_task_runs": ps.n_task_runs,
+                     "overall_progress": ps.overall_progress,
+                     "last_activity": ps.last_activity,
+                     "n_completed_tasks": ps.n_completed_tasks,
+                     "n_volunteers": ps.n_volunteers,
+                     "pro_features": pro,
+                     "n_results": results,
+                     }
+
+    return render_template('/projects/finished.html', **template_args)
 
 
 @blueprint.route('/<short_name>/transferownership', methods=['GET', 'POST'])
@@ -2042,7 +2116,6 @@ def export_project_report(short_name):
                         pro_features=pro)
         return handle_content_type(response)
 
-
     def respond_csv(ty):
         if ty not in ('project',):
             return abort(404)
@@ -2052,7 +2125,7 @@ def export_project_report(short_name):
             return res
         except Exception as e:
             current_app.logger.exception(
-                    u'CSV Export Failed - Project: {0}, Type: {1} - Error: {2}'
+                u'CSV Export Failed - Project: {0}, Type: {1} - Error: {2}'
                     .format(project.short_name, ty, e))
             flash(gettext('Error generating project report.'), 'error')
         return abort(500)

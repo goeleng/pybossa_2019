@@ -26,6 +26,7 @@ from pybossa.cache.projects import overall_progress, n_tasks, n_volunteers
 from pybossa.model.project import Project
 from pybossa.leaderboard.data import get_leaderboard as gl
 from pybossa.leaderboard.jobs import leaderboard as lb
+from flask import current_app
 
 
 session = db.slave_session
@@ -40,6 +41,35 @@ def get_leaderboard(n, user_id=None, window=0, info=None):
         lb(info=info)
         return gl(top_users=n, user_id=user_id, window=window, info=info)
 
+
+@memoize(timeout=timeouts.get('USER_TIMEOUT'))
+def get_project_finished_task_for_user_id(project, user_id):
+    """Return users details who contributed to a particular project."""
+    if project is None:
+        return None
+
+    if user_id is None:
+        return None
+
+    sql = text(
+            '''
+            SELECT "task_run".id,  "task_run".created, "task_run".project_id, "task_run".task_id,
+            "task_run".user_id, "task_run".finish_time, "task_run".media_url, "task_run".info
+            FROM "task_run"
+            WHERE "task_run".project_id=:id AND "task_run".user_id=:user_id
+            ''')
+
+    results = session.execute(sql, dict(id=project, user_id=user_id))
+    all_task_runs = []
+    for row in results:
+        current_app.logger.info(row)
+        task_run = dict(id=row.id, created=row.created, project_id=row.project_id, task_id=row.task_id,
+                        user_id=row.user_id,
+                    finish_time=row.finish_time,
+                    media_url=row.media_url,
+                    info=row.info)
+        all_task_runs.append(task_run)
+    return all_task_runs
 
 @memoize(timeout=timeouts.get('USER_TIMEOUT'))
 def get_user_summary(name, current_user=None):

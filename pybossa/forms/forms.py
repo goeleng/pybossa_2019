@@ -308,6 +308,15 @@ class BulkTaskIIIFImportForm(Form):
             'version': self.version.data
         }
 
+class BulkTaskLocalUploaderImportForm(Form):
+
+    def get_import_data(self):
+        return {
+            'type': 'localUploader',
+            'manifest_uri': self.manifest_uri.data,
+            'version': self.version.data
+        }
+
 
 class GenericBulkTaskImportForm(object):
     """Callable class that will return, when called, the appropriate form
@@ -322,7 +331,8 @@ class GenericBulkTaskImportForm(object):
         's3': BulkTaskS3ImportForm,
         'youtube': BulkTaskYoutubeImportForm,
         'localCSV': BulkTaskLocalCSVImportForm,
-        'iiif': BulkTaskIIIFImportForm
+        'iiif': BulkTaskIIIFImportForm,
+        'localUploader': BulkTaskLocalUploaderImportForm,
     }
 
     def __call__(self, form_name, *form_args, **form_kwargs):
@@ -525,6 +535,10 @@ class AvatarUploadForm(Form):
     y1 = IntegerField(label=None, widget=HiddenInput(), default=0)
     x2 = IntegerField(label=None, widget=HiddenInput(), default=0)
     y2 = IntegerField(label=None, widget=HiddenInput(), default=0)
+
+class ProjectPicturesUploadForm(Form):
+    id = IntegerField(label=None, widget=HiddenInput())
+    project_pictures = FileField(lazy_gettext('Pictures'), validators=[FileRequired()])
 
 class TransferOwnershipForm(Form):
     email_addr = EmailField(lazy_gettext('Email of the new owner'))

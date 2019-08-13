@@ -47,7 +47,7 @@ class Task(db.Model, DomainObject):
     #: Priority of the task from 0.0 to 1.0
     priority_0 = Column(Float, default=0)
     #: Task.info field in JSON with the data for the task.
-    info = Column(JSONB)
+    info = Column(JSONB) #TODO possible INFO HERE? task.info.image
     #: Number of answers to collect for this task.
     n_answers = Column(Integer, default=30)
     #: Array of User IDs that favorited this task
