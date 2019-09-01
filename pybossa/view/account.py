@@ -317,8 +317,10 @@ def register():
         form = RegisterFormWithUserPrefMetadata(request.body)
         form.set_upref_mdata_choices()
 
-    msg = "Hiermit akzeptiere ich, dass ich von  %s kontaktiert werden darf." % current_app.config.get('BRAND')
+    msg = "Hiermit akzeptiere ich die Nutzungsbedingung von  %s." % current_app.config.get('BRAND')
     form.consent.label = msg
+    msg_contact_consent = "Hiermit akzeptiere ich, dass ich von dem KIT-Archiv kontaktiert werden darf."
+    form.contact_consent.label = msg_contact_consent
     if request.method == 'POST' and form.validate():
         if current_app.config.upref_mdata:
             user_pref, metadata = get_user_pref_and_metadata(form.name.data, form)
@@ -326,6 +328,7 @@ def register():
                            email_addr=form.email_addr.data,
                            password=form.password.data,
                            consent=form.consent.data,
+                           contact_consent=form.contact_consent.data,
                            user_type=form.user_type.data)
             account['user_pref'] = user_pref
             account['metadata'] = metadata
@@ -333,7 +336,8 @@ def register():
             account = dict(fullname=form.fullname.data, name=form.name.data,
                            email_addr=form.email_addr.data,
                            password=form.password.data,
-                           consent=form.consent.data)
+                           consent=form.consent.data,
+                           contact_consent=form.contact_consent.data)
 
         confirm_url = get_email_confirmation_url(account)
         if current_app.config.get('ACCOUNT_CONFIRMATION_DISABLED'):
@@ -349,7 +353,7 @@ def register():
                     status='sent')
         return handle_content_type(data)
     if request.method == 'POST' and not form.validate():
-        flash(gettext('Please correct the errors'), 'error')
+        flash(gettext('Beseitigen Sie die Fehler'), 'error')
     data = dict(template='account/register.html',
                 title=gettext("Register"), form=form)
     return handle_content_type(data)

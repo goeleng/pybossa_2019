@@ -20,8 +20,11 @@ import time
 import re
 import json
 import os
+import os
 import math
 import requests
+import exifread
+
 from StringIO import StringIO
 
 from flask import Blueprint, request, url_for, flash, redirect, abort, Response, current_app
@@ -31,6 +34,8 @@ from flask_login import login_required, current_user
 from flask_babel import gettext
 from flask_wtf.csrf import generate_csrf
 from rq import Queue
+from PIL import Image
+from PIL.ExifTags import TAGS
 
 import pybossa.sched as sched
 
@@ -638,7 +643,6 @@ def settings(short_name):
 def upload_import_task(short_name):
     project, owner, ps = project_by_shortname(short_name)
 
-    current_app.logger.info('NEW post method accessed')
     ensure_authorized_to('read', project)
     ensure_authorized_to('update', project)
 
@@ -649,16 +653,25 @@ def upload_import_task(short_name):
 
     filePaths = []
     files = request.files.getlist("file")
+    question = request.form['question'] ## TODO check if empty -> no task import
     for file in files:
         if file:
             prefix = time.time()
             file.filename = "%s_%s_%s.png" % (prefix, file.filename, short_name)
             current_app.logger.info(file.filename)
             container = "project_%s" % short_name
-            filePaths.append('http://127.0.0.1:5000/uploads/' + container + '/' + file.filename)
+            filePaths.append('http://127.0.0.1:5000/uploads/' + container + '/' + file.filename) ## TODO fix absolute path
+            # TODO FIX local url
+
             uploader.upload_file(file, container=container, coordinates=None)
+            image_description = ''
+            for (tag, value) in Image.open('uploads/' + container + '/' + file.filename)._getexif().iteritems():
+                if TAGS.get(tag) == 'ImageDescription':
+                    image_description = value
+            print image_description
+
     current_app.logger.info(filePaths)
-    taskData = dict(question="Wo ist es", localPaths=filePaths)
+    taskData = dict(question=question, localPaths=filePaths, image_description=image_description)
     importData = dict(type='localUploader', localUploaderData=taskData)
 
     try:
@@ -1932,6 +1945,10 @@ def finished(short_name):
                                                                 ps)
     user_info = get_user_id_or_ip()
     results = cached_users.get_project_finished_task_for_user_id(myprojectid, user_info['user_id'])
+
+    for result in results:
+        task = task_repo.get_task(id=result['task_id'])
+        result['media_url'] = task.info['url_b']
     #TODO here get information and provide it to dict
     template_args = {"project": project_sanitized,
                      "title": title,

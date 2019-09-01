@@ -64,6 +64,7 @@ class User(db.Model, DomainObject, UserMixin):
     confirmation_email_sent = Column(Boolean, default=False)
     subscribed = Column(Boolean, default=False)
     consent = Column(Boolean, default=False)
+    contact_consent = Column(Boolean, default=False)
     info = Column(MutableDict.as_mutable(JSONB), default=dict())
     user_pref = Column(JSONB)
 
@@ -92,7 +93,7 @@ class User(db.Model, DomainObject, UserMixin):
     def public_attributes(self):
         """Return a list of public attributes."""
         return ['created', 'name', 'fullname', 'info',
-                'n_answers', 'registered_ago', 'rank', 'score', 'locale']
+                'n_answers', 'registered_ago', 'rank', 'score', 'locale', 'contact_consent']
 
     @classmethod
     def public_info_keys(self):

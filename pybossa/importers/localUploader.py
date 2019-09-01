@@ -34,6 +34,7 @@ class BulkTaskLocalImporter(BulkTaskImport):
         current_app.logger.info(localUploaderData)
         self.question = localUploaderData['question']
         self.filePaths = localUploaderData['localPaths']
+        self.image_description = localUploaderData['image_description']
 
     def tasks(self):
         """Get tasks."""
@@ -50,7 +51,8 @@ class BulkTaskLocalImporter(BulkTaskImport):
                 'question': self.question,
                 'url': path,
                 'url_m': path,
-                'url_b': path
+                'url_b': path,
+                'image_description': self.image_description
             }
             row_finished = dict(info=row)
             data.append(row_finished)

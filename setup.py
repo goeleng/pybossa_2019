@@ -67,7 +67,8 @@ requirements = [
     "Faker",
     "Werkzeug>=0.14.1, <0.14.2",
     "keyring>=13.2.1, <13.2.2",
-    "iiif-prezi>=0.2.9, <1.0.0"
+    "iiif-prezi>=0.2.9, <1.0.0",
+    "exifread",
 ]
 
 setup(

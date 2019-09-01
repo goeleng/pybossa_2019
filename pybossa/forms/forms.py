@@ -400,7 +400,8 @@ class RegisterForm(Form):
                             validators.EqualTo('confirm', err_msg_2)])
 
     confirm = PasswordField(lazy_gettext('Repeat Password'))
-    consent = BooleanField(false_values=("False", "false", '', '0', 0))
+    consent = BooleanField(0, false_values=("False", "false", '', '0', 0), validators=[validators.Required()])
+    contact_consent = BooleanField(false_values=("False", "false", '', '0', 0))
 
 
 class UpdateProfileForm(Form):

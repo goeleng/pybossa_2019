@@ -35,10 +35,11 @@ DESCRIPTION = 'Set the description in your config'
 TERMSOFUSE = 'http://okfn.org/terms-of-use/'
 DATAUSE = 'http://opendatacommons.org/licenses/by/'
 LOGO = ''
-DEFAULT_LOCALE = 'en'
+DEFAULT_LOCALE = 'de'
 LOCALES = [('en', 'English'), ('es', u'Español'),
            ('it', 'Italiano'), ('fr', u'Français'),
-           ('ja', u'日本語'), ('el', u'ελληνικά')]
+           ('ja', u'日本語'), ('el', u'ελληνικά'),
+           ('de', 'Deutsch')]
 
 ## Default THEME
 THEME = 'default'
@@ -54,8 +55,9 @@ UPLOAD_METHOD = 'local'
 LEADERBOARD = 20
 
 ## Default configuration for debug toolbar
-ENABLE_DEBUG_TOOLBAR = True
+ENABLE_DEBUG_TOOLBAR = False
 
+# Cache default key prefix
 # Cache default key prefix
 REDIS_SENTINEL = [('localhost', 26379)]
 REDIS_MASTER = 'mymaster'
@@ -82,7 +84,7 @@ USER_TOP_TIMEOUT = 24 * 60 * 60
 USER_TOTAL_TIMEOUT = 24 * 60 * 60
 
 # Project Presenters
-PRESENTERS = ["basic", "image", "sound", "video", "map", "pdf"]
+PRESENTERS = ["kitarchiv", "basic", "image", "sound", "video", "map", "pdf"]
 # Default Google Docs spreadsheet template tasks URLs
 TEMPLATE_TASKS = {
     'image': "https://docs.google.com/spreadsheet/ccc?key=0AsNlt0WgPAHwdHFEN29mZUF0czJWMUhIejF6dWZXdkE&usp=sharing",
@@ -135,7 +137,7 @@ CORS_RESOURCES = {r"/api/*": {"origins": "*",
 FAILED_JOBS_RETRIES = 3
 FAILED_JOBS_MAILS = 7
 
-FULLTEXTSEARCH_LANGUAGE = 'english'
+FULLTEXTSEARCH_LANGUAGE = 'german'
 
 STRICT_SLASHES = True
 
