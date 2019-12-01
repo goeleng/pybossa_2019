@@ -312,15 +312,14 @@ class APIBase(MethodView):
             if data is None:
                 data = json.loads(request.data)
             self._forbidden_attributes(data)
+            # here check if task_run already exists for user_id and task
+            # yes? instead of creating new instance update existing
+            # Question: is new id already in json? or auto generated
+            # Update method already exist in task_repository.py - update
             inst = self._create_instance_from_request(data)
-            current_app.logger.info("instance")
             repo = repos[self.__class__.__name__]['repo']
-            current_app.logger.info("repo")
             save_func = repos[self.__class__.__name__]['save']
-            current_app.logger.info("save")
             getattr(repo, save_func)(inst)
-            current_app.logger.info("getattr")
-            current_app.logger.info(inst)
             self._log_changes(None, inst)
             self.refresh_cache(cls_name, inst.id)
             json_response = json.dumps(inst.dictize())
@@ -341,9 +340,7 @@ class APIBase(MethodView):
         data = self.hateoas.remove_links(data)
         inst = self.__class__(**data)
         self._update_object(inst)
-        current_app.logger.info("before ensure authorized")
         ensure_authorized_to('create', inst)
-        current_app.logger.info("after ensure authorized")
         self._validate_instance(inst)
         return inst
 

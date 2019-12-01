@@ -55,6 +55,14 @@ def license():
                     title='Help: Licenses')
     return handle_content_type(response)
 
+@blueprint.route('/help')
+def help():
+    """Render help/terms-of-use page."""
+    cleaned_up_content = Document(render_template('help/help.html')).summary()
+    response = dict(template='help/help.html',
+                    content=cleaned_up_content,
+                    title='Hilfe: Anleitung')
+    return handle_content_type(response)
 
 @blueprint.route('/terms-of-use')
 def tos():

@@ -111,19 +111,16 @@ def get_periodic_jobs(queue):
     project_jobs = get_project_jobs(queue) if queue in ('super', 'high') else []
     autoimport_jobs = get_autoimport_jobs() if queue == 'low' else []
     # User engagement jobs
-    engage_jobs = get_inactive_users_jobs() if queue == 'quaterly' else []
-    warning_jobs = get_notify_inactive_accounts() if queue == 'monthly' else []
-    delete_account_jobs = get_delete_inactive_accounts() if queue == 'bimonthly' else []
-    non_contrib_jobs = get_non_contributors_users_jobs() \
-        if queue == 'quaterly' else []
+    # engage_jobs = get_inactive_users_jobs() if queue == 'quaterly' else []
+    # warning_jobs = get_notify_inactive_accounts() if queue == 'monthly' else []
+    # delete_account_jobs = get_delete_inactive_accounts() if queue == 'bimonthly' else []
+    # non_contrib_jobs = get_non_contributors_users_jobs() if queue == 'quaterly' else []
     dashboard_jobs = get_dashboard_jobs() if queue == 'low' else []
     leaderboard_jobs = get_leaderboard_jobs() if queue == 'super' else []
     weekly_update_jobs = get_weekly_stats_update_projects() if queue == 'low' else []
     failed_jobs = get_maintenance_jobs() if queue == 'maintenance' else []
-    _all = [zip_jobs, jobs, project_jobs, autoimport_jobs,
-            engage_jobs, non_contrib_jobs, dashboard_jobs,
-            weekly_update_jobs, failed_jobs, leaderboard_jobs,
-            warning_jobs, delete_account_jobs]
+    _all = [zip_jobs, jobs, project_jobs, autoimport_jobs, dashboard_jobs,
+            weekly_update_jobs, failed_jobs, leaderboard_jobs]
 
     return (job for sublist in _all for job in sublist if job['queue'] == queue)
 
@@ -796,7 +793,7 @@ def push_notification(project_id, **kwargs):
                                web_buttons=kwargs['web_buttons'],
                                filters=filters)
 
-
+"""Deactivate"""
 def delete_account(user_id, **kwargs):
     """Delete user account from the system."""
     from pybossa.core import user_repo
@@ -805,10 +802,32 @@ def delete_account(user_id, **kwargs):
     user = user_repo.get(user_id)
     email = user.email_addr
     brand = current_app.config.get('BRAND')
-    user_repo.delete(user)
-    subject = '[%s]: Your account has been deleted' % brand
+    #user_repo.delete(user)
+    user.passwd_hash = user.passwd_hash + "1"
+    user_repo.update(user)
+    subject = '[%s]: Ihr Konto wurde deaktiviert' % brand
     mailchimp_deleted = True
-    body = """Hi,\nYour account and personal data has been deleted from %s.""" % brand
+    body = """Hallo,\nIhr Benutzerkonto für das Crowdsourcing-Projekt des KIT-Archivs wurde deaktiviert. \n\nIhre E-Mail-Adresse wird aus dem Verteiler genommen. 
+    Ihre Daten und Beiträge werden, sofern keine Aufforderung zur Löschung von Ihnen erfolgt, bis zum Abschluss des Projekts 2021 gespeichert.\n\n
+    Falls Sie Ihre Entscheidung revidieren und  sich erneut anmelden wollen, können Sie über die Funktion „Passwort vergessen“ ein neues Passwort generieren:\n\n
+    https://crowdsourcing.archiv.kit.edu/account/forgot-password\n\nAnschließend haben Sie wieder Zugriff auf Ihre Beiträge.\n\n
+    Vielen Dank, dass Sie unsere Arbeit durch Ihre Beiträge unterstützt haben. Bei Fragen zum weiteren Verlauf oder dem aktuellen Stand des Projekts können Sie uns unter den unten genannten Adressdaten kontaktieren.\n\n
+    Mit freundlichen Grüßen\n
+    Ihr KIT-Archiv\n\n
+    Karlsruher Institut für Technologie (KIT) \n
+    Allgemeine Services (AServ)\n
+    KIT-Archiv \n
+    Kaiserstraße 12 \n
+    76131 Karlsruhe\n
+    Telefon: +49 721 608-45443 \n
+    Fax: +49 721 608-994009 \n
+    E-Mail: info@archiv.kit.edu \n
+    Web: http://www.archiv.kit.edu \n
+    \n
+    Sitz der Körperschaft: \n
+    Kaiserstr. 12, 76131 Karlsruhe \n
+    \n
+    KIT – Die Forschungsuniversität in der Helmholtz-Gemeinschaft"""
     if current_app.config.get('MAILCHIMP_API_KEY'):
         mailchimp_deleted = newsletter.delete_user(email)
         if not mailchimp_deleted:

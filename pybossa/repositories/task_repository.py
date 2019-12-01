@@ -89,11 +89,9 @@ class TaskRepository(Repository):
         return self._filter_by(TaskRun, limit, offset, yielded, last_id,
                               fulltextsearch, desc, **filters)
 
-
     def count_task_runs_with(self, **filters):
         query_args, _, _, _ = self.generate_query_from_keywords(TaskRun, **filters)
         return self.db.session.query(TaskRun).filter(*query_args).count()
-
 
     # Methods for saving, deleting and updating both Task and TaskRun objects
     def save(self, element):

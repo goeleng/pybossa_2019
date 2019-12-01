@@ -31,10 +31,9 @@ class BulkTaskLocalImporter(BulkTaskImport):
 
     def __init__(self, localUploaderData):
         """Init method."""
-        current_app.logger.info(localUploaderData)
         self.question = localUploaderData['question']
         self.filePaths = localUploaderData['localPaths']
-        self.image_description = localUploaderData['image_description']
+        self.image_description = localUploaderData['description']
 
     def tasks(self):
         """Get tasks."""
@@ -46,13 +45,15 @@ class BulkTaskLocalImporter(BulkTaskImport):
 
     def _get_task_data(self):
         data = []
-        for path in self.filePaths:
+        print "HERE GEHTS LOS"
+        print self.image_description
+        for x in range(len(self.filePaths)):
             row = {
                 'question': self.question,
-                'url': path,
-                'url_m': path,
-                'url_b': path,
-                'image_description': self.image_description
+                'url': self.filePaths[x],
+                'url_m': self.filePaths[x],
+                'url_b': self.filePaths[x],
+                'image_description': self.image_description[x]
             }
             row_finished = dict(info=row)
             data.append(row_finished)

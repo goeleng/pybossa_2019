@@ -53,6 +53,7 @@ from pybossa.model.blogpost import Blogpost
 from pybossa.util import (Pagination, admin_required, get_user_id_or_ip, rank,
                           handle_content_type, redirect_content_type,
                           get_avatar_url, fuzzyboolean)
+from pybossa.util import unicode_csv_reader
 from pybossa.auth import ensure_authorized_to
 from pybossa.cache import projects as cached_projects
 from pybossa.cache import users as cached_users
@@ -75,6 +76,8 @@ from pybossa.auditlogger import AuditLogger
 from pybossa.contributions_guard import ContributionsGuard
 from pybossa.default_settings import TIMEOUT
 from pybossa.exporter.csv_reports_export import ProjectReportCsvExporter
+from werkzeug.datastructures import FileStorage
+import io, time
 
 blueprint = Blueprint('project', __name__)
 
@@ -119,14 +122,15 @@ def sanitize_project_owner(project, owner, current_user, ps=None):
         project_sanitized['overall_progress'] = ps.overall_progress
     return project_sanitized, owner_sanitized
 
+
 def zip_enabled(project, user):
     """Return if the user can download a ZIP file."""
     if project.zip_download is False:
         if user.is_anonymous():
             return abort(401)
         if (user.is_authenticated() and
-            (user.id not in project.owners_ids and
-                user.admin is False)):
+                (user.id not in project.owners_ids and
+                 user.admin is False)):
             return abort(403)
 
 
@@ -158,8 +162,8 @@ def pro_features(owner=None):
     }
     if owner:
         pro['better_stats_enabled'] = feature_handler.better_stats_enabled_for(
-                                          current_user,
-                                          owner)
+            current_user,
+            owner)
     return pro
 
 
@@ -188,7 +192,7 @@ def project_index(page, lookup, category, fallback, use_count, order_by=None,
         ranked_projects = rank(ranked_projects, order_by, desc)
 
     offset = (page - 1) * per_page
-    projects = ranked_projects[offset:offset+per_page]
+    projects = ranked_projects[offset:offset + per_page]
     count = cached_projects.n_count(category)
 
     if fallback and not projects:  # pragma: no cover
@@ -253,8 +257,10 @@ def historical_contributions(page):
     desc = bool(request.args.get('desc', False))
     pre_ranked = True
     user_id = current_user.id
+
     def lookup(*args, **kwargs):
         return cached_users.projects_contributed(user_id, order_by='last_contribution')
+
     return project_index(page, lookup, 'historical_contributions', False, True, order_by,
                          desc, pre_ranked)
 
@@ -638,6 +644,7 @@ def settings(short_name):
                     pro_features=pro)
     return handle_content_type(response)
 
+
 @blueprint.route('/<short_name>/tasks/import/upload', methods=['POST'])
 @login_required
 def upload_import_task(short_name):
@@ -652,26 +659,41 @@ def upload_import_task(short_name):
         return abort(404)
 
     filePaths = []
+    image_description = []
     files = request.files.getlist("file")
-    question = request.form['question'] ## TODO check if empty -> no task import
+    question = request.form['question']
+    csv_file = request.files['csv']
+
+    csv_container = "project_%s" % short_name
+    uploader.upload_file(csv_file, container=csv_container, coordinates=None)
+    csv_path = 'uploads/' + csv_container + '/' + csv_file.filename
+
+    csv_data = _get_csv_data_from_request(csv_path)
+
     for file in files:
         if file:
             prefix = time.time()
+            csv_data_alte_signatur = ''
+            csv_data_datierung = ''
+            csv_data_titel = ''
+            for csv_data_entry in csv_data:
+                splitted_csv_data = csv_data_entry['info']['Signatur;Datierung;Titel'].split(';')
+                current_app.logger.info(splitted_csv_data[0])
+                current_app.logger.info(file.filename)
+                if splitted_csv_data[0] == file.filename:
+                    csv_data_alte_signatur = splitted_csv_data[0]
+                    csv_data_datierung = splitted_csv_data[1]
+                    csv_data_titel = splitted_csv_data[2]
+
+            image_description.append(json.dumps(
+                {'alte_signatur': csv_data_alte_signatur, 'datierung': csv_data_datierung, 'titel': csv_data_titel}))
             file.filename = "%s_%s_%s.png" % (prefix, file.filename, short_name)
-            current_app.logger.info(file.filename)
             container = "project_%s" % short_name
-            filePaths.append('http://127.0.0.1:5000/uploads/' + container + '/' + file.filename) ## TODO fix absolute path
-            # TODO FIX local url
-
+            #filePaths.append('https://crowdsourcing.archiv.kit.edu/uploads/' + container + '/' + file.filename)  ## TODO fix absolute path
+            filePaths.append('http://localhost:5000/uploads/' + container + '/' + file.filename)
             uploader.upload_file(file, container=container, coordinates=None)
-            image_description = ''
-            for (tag, value) in Image.open('uploads/' + container + '/' + file.filename)._getexif().iteritems():
-                if TAGS.get(tag) == 'ImageDescription':
-                    image_description = value
-            print image_description
 
-    current_app.logger.info(filePaths)
-    taskData = dict(question=question, localPaths=filePaths, image_description=image_description)
+    taskData = dict(question=question, localPaths=filePaths, description=image_description)
     importData = dict(type='localUploader', localUploaderData=taskData)
 
     try:
@@ -682,9 +704,59 @@ def upload_import_task(short_name):
         current_app.logger.error(inst)
         msg = 'Oops! Looks like there was an error!'
         flash(gettext(msg), 'error')
-
-    template_args['template'] = '/projects/importers/%s.html' % importer_type
+    template_args = dict(project=project,
+                         template='/projects/importers/localUploader.html')
     return handle_content_type(template_args)
+
+
+def _get_csv_data_from_request(csv_filename):
+    if csv_filename is None:
+        msg = ("Not a valid csv file for import")
+        raise BulkImportException(gettext(msg), 'error')
+
+    retry = 0
+    csv_file = None
+    while retry < 10:
+        try:
+            print csv_filename
+            csv_file = FileStorage(io.open(csv_filename, encoding='utf-8-sig'))
+            break
+        except IOError, e:
+            time.sleep(2)
+            retry += 1
+
+    if csv_file is None or csv_file.stream is None:
+        msg = ("Unable to load csv file for import, file {0}".format(csv_filename))
+        raise BulkImportException(gettext(msg), 'error')
+
+    csv_file.stream.seek(0)
+    csvcontent = io.StringIO(csv_file.stream.read())
+    csvreader = unicode_csv_reader(csvcontent)
+    return list(_import_csv_tasks(csvreader))
+
+
+def _import_csv_tasks(csvreader):
+    """Import CSV tasks."""
+    headers = []
+    fields = set(['Signatur', 'Datierung', 'Titel'])
+    field_header_index = []
+    row_number = 0
+    for row in csvreader:
+        if not headers:
+            headers = row
+            field_headers = set(headers) & fields
+            for field in field_headers:
+                field_header_index.append(headers.index(field))
+        else:
+            row_number += 1
+            task_data = {"info": {}}
+            for idx, cell in enumerate(row):
+                if idx in field_header_index:
+                    task_data[headers[idx]] = cell
+                else:
+                    task_data["info"][headers[idx]] = cell
+            yield task_data
+
 
 @blueprint.route('/<short_name>/tasks/import', methods=['GET', 'POST'])
 @login_required
@@ -1924,14 +1996,14 @@ def reset_secret_key(short_name):
     return redirect_content_type(url_for('.update', short_name=short_name))
 
 
-#TODO extract to plugin
+# TODO extract to plugin
 @blueprint.route('/<short_name>/finished', methods=['GET'])
 def finished(short_name):
     """Results finished for the project."""
 
     project, owner, ps = project_by_shortname(short_name)
 
-    title = project_title(project, "Finished")
+    title = project_title(project, "Mein Bearbeitungsstand")
 
     ensure_authorized_to('read', project)
     myprojectid = project.id
@@ -1944,12 +2016,19 @@ def finished(short_name):
                                                                 current_user,
                                                                 ps)
     user_info = get_user_id_or_ip()
-    results = cached_users.get_project_finished_task_for_user_id(myprojectid, user_info['user_id'])
-
-    for result in results:
-        task = task_repo.get_task(id=result['task_id'])
-        result['media_url'] = task.info['url_b']
-    #TODO here get information and provide it to dict
+    task_run_data = task_repo.filter_task_runs_by(project_id=project_sanitized['id'], user_id=user_info['user_id'])
+    extended_task_run_data = []
+    for task_run in task_run_data:
+        processed_task = False
+        task = task_repo.get_task(id=task_run.task_id)
+        splitted_info = task_run.info.split(";;;")
+        current_app.logger.info(splitted_info)
+        for info in splitted_info:
+            if info != "keine Angabe":
+                processed_task = True
+                break
+        extended_task_run_data.append(dict(taskrun=task_run, media_url=task.info['url_b'], processed=processed_task))
+    # TODO here get information and provide it to dict
     template_args = {"project": project_sanitized,
                      "title": title,
                      "owner": owner_sanitized,
@@ -1960,7 +2039,7 @@ def finished(short_name):
                      "n_completed_tasks": ps.n_completed_tasks,
                      "n_volunteers": ps.n_volunteers,
                      "pro_features": pro,
-                     "n_results": results,
+                     "n_results": extended_task_run_data,
                      }
 
     return render_template('/projects/finished.html', **template_args)

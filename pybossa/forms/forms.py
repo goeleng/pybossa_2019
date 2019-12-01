@@ -347,59 +347,56 @@ class LoginForm(Form):
 
     """Login Form class for signin into PYBOSSA."""
 
-    email = TextField(lazy_gettext('E-mail'),
+    email = TextField(lazy_gettext('E-Mail Adresse'),
                       [validators.Required(
-                          message=lazy_gettext("The e-mail is required"))])
+                          message=lazy_gettext("Sie müssen eine E-Mail Adresse eingeben"))])
 
-    password = PasswordField(lazy_gettext('Password'),
+    password = PasswordField(lazy_gettext('Passwort'),
                              [validators.Required(
                                  message=lazy_gettext(
-                                     "You must provide a password"))])
+                                     "Sie müssen ein Passwort eingeben"))])
 
 
 class RegisterForm(Form):
 
     """Register Form Class for creating an account in PYBOSSA."""
 
-    err_msg = lazy_gettext("Full name must be between 3 and %(fullname)s "
-                           "characters long", fullname=USER_FULLNAME_MAX_LENGTH)
-    fullname = TextField(lazy_gettext('Full name'),
+    err_msg = lazy_gettext("Name muss mindestens 3 Zeichen lang sein.", fullname=USER_FULLNAME_MAX_LENGTH)
+    fullname = TextField(lazy_gettext('Vor- und Nachname'),
                          [validators.Length(min=3, max=USER_FULLNAME_MAX_LENGTH, message=err_msg)])
 
-    err_msg = lazy_gettext("User name must be between 3 and %(username_length)s "
-                           "characters long", username_length=USER_NAME_MAX_LENGTH)
-    err_msg_2 = lazy_gettext("The user name is already taken")
-    name = TextField(lazy_gettext('User name'),
+    err_msg = lazy_gettext("Der Benutzernamen muss mindestens 3 Zeichen lang sein.", username_length=USER_NAME_MAX_LENGTH)
+    err_msg_2 = lazy_gettext("Der Benutzername ist schon vergeben.")
+    name = TextField(lazy_gettext('Benutzername'),
                          [validators.Length(min=3, max=USER_NAME_MAX_LENGTH, message=err_msg),
                           pb_validator.NotAllowedChars(),
                           pb_validator.Unique(user_repo.get_by, 'name', err_msg_2),
                           pb_validator.ReservedName('account', current_app)])
 
-    err_msg = lazy_gettext("Email must be between 3 and %(email_length)s "
-                           "characters long", email_length=EMAIL_MAX_LENGTH)
-    err_msg_2 = lazy_gettext("Email is already taken")
-    email_addr = EmailField(lazy_gettext('Email Address'),
+    err_msg = lazy_gettext("Sie müssen eine korrekte E-Mail Adresse angeben.", email_length=EMAIL_MAX_LENGTH)
+    err_msg_2 = lazy_gettext("E-Mail Adresse ist schon vergeben.")
+    email_addr = EmailField(lazy_gettext('E-Mail Adresse'),
                            [validators.Length(min=3,
                                               max=EMAIL_MAX_LENGTH,
                                               message=err_msg),
                             validators.Email(),
                             pb_validator.Unique(user_repo.get_by, 'email_addr', err_msg_2)])
 
-    err_msg = lazy_gettext("Password cannot be empty")
-    err_msg_2 = lazy_gettext("Passwords must match")
+    err_msg = lazy_gettext("Passwort darf nicht leer sein.")
+    err_msg_2 = lazy_gettext("Passwörter müssen gleich sein.")
     if enable_strong_password:
         password = PasswordField(
-                        lazy_gettext('New Password'),
+                        lazy_gettext('Passwort'),
                         [validators.Required(err_msg),
                             validators.EqualTo('confirm', err_msg_2),
                             pb_validator.CheckPasswordStrength()])
     else:
         password = PasswordField(
-                        lazy_gettext('New Password'),
+                        lazy_gettext('Passwort'),
                         [validators.Required(err_msg),
                             validators.EqualTo('confirm', err_msg_2)])
 
-    confirm = PasswordField(lazy_gettext('Repeat Password'))
+    confirm = PasswordField(lazy_gettext('Passwort wiederholen'))
     consent = BooleanField(0, false_values=("False", "false", '', '0', 0), validators=[validators.Required()])
     contact_consent = BooleanField(false_values=("False", "false", '', '0', 0))
 
@@ -410,35 +407,32 @@ class UpdateProfileForm(Form):
 
     id = IntegerField(label=None, widget=HiddenInput())
 
-    err_msg = lazy_gettext("Full name must be between 3 and %(fullname)s "
-                           "characters long" , fullname=USER_FULLNAME_MAX_LENGTH)
-    fullname = TextField(lazy_gettext('Full name'),
+    err_msg = lazy_gettext("Name muss mindestens 3 Zeichen lang sein.", fullname=USER_FULLNAME_MAX_LENGTH)
+    fullname = TextField(lazy_gettext('Vor- und Nachname'),
                          [validators.Length(min=3, max=USER_FULLNAME_MAX_LENGTH, message=err_msg)])
 
-    err_msg = lazy_gettext("User name must be between 3 and %(username_length)s "
-                           "characters long", username_length=USER_NAME_MAX_LENGTH)
-    err_msg_2 = lazy_gettext("The user name is already taken")
-    name = TextField(lazy_gettext('Username'),
+    err_msg = lazy_gettext("Der Benutzernamen muss mindestens 3 Zeichen lang sein.", username_length=USER_NAME_MAX_LENGTH)
+    err_msg_2 = lazy_gettext("Der Benutzername ist schon vergeben.")
+    name = TextField(lazy_gettext('Benutzername'),
                      [validators.Length(min=3, max=USER_NAME_MAX_LENGTH, message=err_msg),
                       pb_validator.NotAllowedChars(),
                       pb_validator.Unique(user_repo.get_by, 'name', err_msg_2),
                       pb_validator.ReservedName('account', current_app)])
 
-    err_msg = lazy_gettext("Email must be between 3 and %(email_length)s "
-                           "characters long", email_length=EMAIL_MAX_LENGTH)
-    err_msg_2 = lazy_gettext("Email is already taken")
-    email_addr = EmailField(lazy_gettext('Email Address'),
+    err_msg = lazy_gettext("Sie müssen eine korrekte E-Mail Adresse angeben.", email_length=EMAIL_MAX_LENGTH)
+    err_msg_2 = lazy_gettext("E-Mail Adresse ist schon vergeben.")
+    email_addr = EmailField(lazy_gettext('E-Mail Adresse'),
                            [validators.Length(min=3,
                                               max=EMAIL_MAX_LENGTH,
                                               message=err_msg),
                             validators.Email(),
                             pb_validator.Unique(user_repo.get_by, 'email_addr', err_msg_2)])
-    subscribed = BooleanField(lazy_gettext('Get email notifications'))
+    subscribed = BooleanField(lazy_gettext('E-Mail Benachrichtigungen erhalten'))
 
-    locale = SelectField(lazy_gettext('Language'))
-    ckan_api = TextField(lazy_gettext('CKAN API Key'))
-    privacy_mode = BooleanField(lazy_gettext('Privacy Mode'))
-    restrict = BooleanField(lazy_gettext('Restrict processing'))
+    locale = SelectField(lazy_gettext('Sprache'))
+    #ckan_api = TextField(lazy_gettext('CKAN API Key'))
+    #privacy_mode = BooleanField(lazy_gettext('Privacy Mode'))
+    #restrict = BooleanField(lazy_gettext('Restrict processing'))
 
     def set_locales(self, locales):
         """Fill the locale.choices."""
@@ -452,54 +446,53 @@ class ChangePasswordForm(Form):
 
     """Form for changing user's password."""
 
-    current_password = PasswordField(lazy_gettext('Current password'))
+    current_password = PasswordField(lazy_gettext('Derzeitiges Passwort'))
 
-    err_msg = lazy_gettext("Password cannot be empty")
-    err_msg_2 = lazy_gettext("Passwords must match")
+    err_msg = lazy_gettext("Passwort darf nicht leer sein")
+    err_msg_2 = lazy_gettext("Passwörter müssen übereinstimmen")
     if enable_strong_password:
         new_password = PasswordField(
-                        lazy_gettext('New Password'),
+                        lazy_gettext('Neues Passwort'),
                         [validators.Required(err_msg),
                             pb_validator.CheckPasswordStrength(),
                             validators.EqualTo('confirm', err_msg_2)
                             ])
     else:
         new_password = PasswordField(
-                        lazy_gettext('New Password'),
+                        lazy_gettext('Neues Passwort'),
                         [validators.Required(err_msg),
                             validators.EqualTo('confirm', err_msg_2)])
 
-    confirm = PasswordField(lazy_gettext('Repeat password'))
+    confirm = PasswordField(lazy_gettext('Passwort wiederholen'))
 
 
 class ResetPasswordForm(Form):
 
     """Class for resetting user's password."""
 
-    err_msg = lazy_gettext("Password cannot be empty")
-    err_msg_2 = lazy_gettext("Passwords must match")
+    err_msg = lazy_gettext("Passwort darf nicht leer sein")
+    err_msg_2 = lazy_gettext("Passwörter müssen übereinstimmen")
     if enable_strong_password:
         new_password = PasswordField(
-                        lazy_gettext('New Password'),
+                        lazy_gettext('Neues Passwort'),
                         [validators.Required(err_msg),
                             pb_validator.CheckPasswordStrength(),
                             validators.EqualTo('confirm', err_msg_2)])
     else:
         new_password = PasswordField(
-                        lazy_gettext('New Password'),
+                        lazy_gettext('Neues Passwort'),
                         [validators.Required(err_msg),
                             validators.EqualTo('confirm', err_msg_2)])
 
-    confirm = PasswordField(lazy_gettext('Repeat Password'))
+    confirm = PasswordField(lazy_gettext('Passwort wiederholen'))
 
 
 class ForgotPasswordForm(Form):
 
     """Form Class for forgotten password."""
 
-    err_msg = lazy_gettext("Email must be between 3 and %(email_length)s "
-                           "characters long", email_length=EMAIL_MAX_LENGTH)
-    email_addr = EmailField(lazy_gettext('Email Address'),
+    err_msg = lazy_gettext("Sie müssen eine korrekte E-Mail Adresse angeben.", email_length=EMAIL_MAX_LENGTH)
+    email_addr = EmailField(lazy_gettext('E-Mail Adresse'),
                            [validators.Length(min=3,
                                               max=EMAIL_MAX_LENGTH,
                                               message=err_msg),
@@ -515,7 +508,7 @@ class OTPForm(Form):
 ### Forms for admin view
 
 class SearchForm(Form):
-    user = TextField(lazy_gettext('User'))
+    user = TextField(lazy_gettext('Benutzer'))
 
 
 class CategoryForm(Form):
@@ -539,7 +532,7 @@ class AvatarUploadForm(Form):
 
 class ProjectPicturesUploadForm(Form):
     id = IntegerField(label=None, widget=HiddenInput())
-    project_pictures = FileField(lazy_gettext('Pictures'), validators=[FileRequired()])
+    project_pictures = FileField(lazy_gettext('Bilder'), validators=[FileRequired()])
 
 class TransferOwnershipForm(Form):
     email_addr = EmailField(lazy_gettext('Email of the new owner'))

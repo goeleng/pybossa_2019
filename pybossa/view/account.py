@@ -109,7 +109,7 @@ def signin():
         user = user_repo.get_by(email_addr=email)
         if user and user.check_password(password):
             if not current_app.config.get('ENABLE_TWO_FACTOR_AUTH'):
-                msg_1 = gettext("Welcome back") + " " + user.fullname
+                msg_1 = gettext("Willkommen zurueck") + " " + user.fullname
                 flash(msg_1, 'success')
                 return _sign_in_user(user)
             else:
@@ -121,13 +121,13 @@ def signin():
         elif user:
             msg, method = get_user_signup_method(user)
             if method == 'local':
-                msg = gettext("Ooops, Incorrect email/password")
+                msg = gettext("Falsche E-Mail oder Passwort")
                 flash(msg, 'error')
             else:
                 flash(msg, 'info')
         else:
-            msg = gettext("Ooops, we didn't find you in the system, \
-                          did you sign up?")
+            msg = gettext("Wir konnten Sie nicht im System finden, \
+                          sind Sie registriert?")
             flash(msg, 'info')
 
     if (request.method == 'POST' and form.validate()
@@ -256,7 +256,7 @@ def signout():
 
     """
     logout_user()
-    flash(gettext('You are now signed out'), SUCCESS)
+    flash(gettext('Sie sind nun ausgeloggt.'), SUCCESS)
     return redirect_content_type(url_for('home.home'), status=SUCCESS)
 
 
@@ -285,7 +285,7 @@ def confirm_email():
         account = dict(fullname=current_user.fullname, name=current_user.name,
                        email_addr=current_user.email_addr)
         confirm_url = get_email_confirmation_url(account)
-        subject = ('Verify your email in %s' % current_app.config.get('BRAND'))
+        subject = ('Bestaetigen Sie Ihre E-Mail fuer %s' % current_app.config.get('BRAND'))
         msg = dict(subject=subject,
                    recipients=[current_user.email_addr],
                    body=render_template('/account/email/validate_email.md',
@@ -293,8 +293,8 @@ def confirm_email():
         msg['html'] = render_template('/account/email/validate_email.html',
                                       user=account, confirm_url=confirm_url)
         mail_queue.enqueue(send_mail, msg)
-        msg = gettext("An e-mail has been sent to \
-                       validate your e-mail address.")
+        msg = gettext("Eine E-Mail wurde an Ihre Adresse versendet, \
+                       um Ihre Eingabe zu validieren.")
         flash(msg, 'info')
         user.confirmation_email_sent = True
         user_repo.update(user)
@@ -317,9 +317,9 @@ def register():
         form = RegisterFormWithUserPrefMetadata(request.body)
         form.set_upref_mdata_choices()
 
-    msg = "Hiermit akzeptiere ich die Nutzungsbedingung von  %s." % current_app.config.get('BRAND')
+    msg = "Hiermit akzeptiere ich die Nutzungsbedingungen des Crowdsorucing Projekts des %s." % current_app.config.get('BRAND')
     form.consent.label = msg
-    msg_contact_consent = "Hiermit akzeptiere ich, dass ich von dem KIT-Archiv kontaktiert werden darf."
+    msg_contact_consent = "Hiermit akzeptiere ich, dass ich im Rahmen des Crowdsourcing Projekts durch das KIT-Archiv kontaktiert werden darf."
     form.contact_consent.label = msg_contact_consent
     if request.method == 'POST' and form.validate():
         if current_app.config.upref_mdata:
@@ -377,7 +377,7 @@ def newsletter_subscribe():
             user_repo.update(user)
         if request.args.get('subscribe') == 'True':
             newsletter.subscribe_user(user)
-            flash("You are subscribed to our newsletter!", 'success')
+            flash("Sie abonieren nun unseren Newsletter", 'success')
             return redirect_content_type(next_url)
         elif request.args.get('subscribe') == 'False':
             return redirect_content_type(next_url)
@@ -434,7 +434,7 @@ def _update_user_with_valid_email(user, email_addr):
     user.confirmation_email_sent = False
     user.email_addr = email_addr
     user_repo.update(user)
-    flash(gettext('Your email has been validated.'))
+    flash(gettext('Ihre E-Mail wurde validiert.'))
     return _sign_in_user(user)
 
 
@@ -661,11 +661,11 @@ def _handle_avatar_update(user, avatar_form):
         user.info['avatar_url'] = avatar_url
         user_repo.update(user)
         cached_users.delete_user_summary(user.name)
-        flash(gettext('Your avatar has been updated! It may \
-                      take some minutes to refresh...'), 'success')
+        flash(gettext('Ihr Bild wurde aktualisiert! Es kann \
+                      einige Minuten dauern bis Sie das neue Bild sehen.'), 'success')
         return True
     else:
-        flash("You have to provide an image file to update your avatar", "error")
+        flash("Sie muessen ein Bild zur Verfuegung stellen.", "error")
         return False
 
 
@@ -712,10 +712,10 @@ def _handle_profile_update(user, update_form):
         user.subscribed = fuzzyboolean(update_form.subscribed.data)
         user_repo.update(user)
         cached_users.delete_user_summary(user.name)
-        flash(gettext('Your profile has been updated!'), 'success')
+        flash(gettext('Ihr Profil wurde aktualisiert!'), 'success')
         return True
     else:
-        flash(gettext('Please correct the errors'), 'error')
+        flash(gettext('Bitte beseitigen Sie die Fehler'), 'error')
         return False
 
 
@@ -725,16 +725,16 @@ def _handle_password_update(user, password_form):
         if user.check_password(password_form.current_password.data):
             user.set_password(password_form.new_password.data)
             user_repo.update(user)
-            flash(gettext('Yay, you changed your password succesfully!'),
+            flash(gettext('Sie haben Ihr Passwort erfolgreich aktualisiert!'),
                   'success')
             return True
         else:
-            msg = gettext("Your current password doesn't match the "
-                          "one in our records")
+            msg = gettext("Das aktuelle Passwort stimmt nicht mit dem "
+                          "in unserem System ueberein")
             flash(msg, 'error')
             return False
     else:
-        flash(gettext('Please correct the errors'), 'error')
+        flash(gettext('Bitte beseitigen Sie die Fehler!'), 'error')
         return False
 
 
@@ -781,10 +781,10 @@ def reset_password():
     if form.validate_on_submit():
         user.set_password(form.new_password.data)
         user_repo.update(user)
-        flash(gettext('You reset your password successfully!'), 'success')
+        flash(gettext('Sie haben Ihr Passwort erfolgreich zurueckgesetzt!'), 'success')
         return _sign_in_user(user)
     if request.method == 'POST' and not form.validate():
-        flash(gettext('Please correct the errors'), 'error')
+        flash(gettext('Bitte beseitigen Sie die Fehler.'), 'error')
     response = dict(template='/account/password_reset.html', form=form)
     return handle_content_type(response)
 
@@ -836,17 +836,12 @@ def forgot_password():
                     '/account/email/forgot_password.html',
                     user=user, recovery_url=recovery_url)
             mail_queue.enqueue(send_mail, msg)
-            flash(gettext("We've sent you an email with account "
-                          "recovery instructions!"),
+            flash(gettext("Wir haben Ihnen eine E-Mail zur Wiederherstellung geschickt!"),
                   'success')
         else:
-            flash(gettext("We don't have this email in our records. "
-                          "You may have signed up with a different "
-                          "email or used Twitter, Facebook, or "
-                          "Google to sign-in"), 'error')
+            flash(gettext("Angegebene E-Mail konnte nicht gefunden werden."), 'error')
     if request.method == 'POST' and not form.validate():
-        flash(gettext('Something went wrong, please correct the errors on the '
-              'form'), 'error')
+        flash(gettext('Bitte beseitigen Sie die Fehler!'), 'error')
     data = dict(template='/account/password_forgot.html',
                 form=form)
     return handle_content_type(data)
