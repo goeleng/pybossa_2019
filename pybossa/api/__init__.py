@@ -235,7 +235,8 @@ def user_progress(project_id=None, short_name=None):
             else:
                 query_attrs['user_id'] = current_user.id
             taskrun_count = task_repo.count_task_runs_with(**query_attrs)
-            tmp = dict(done=taskrun_count, total=n_tasks(project.id))
+            tasks = task_repo.filter_tasks_by(project_id=project.id, limit=1)
+            tmp = dict(done=taskrun_count, total=n_tasks(project.id), first=tasks[0].id)
             return Response(json.dumps(tmp), mimetype="application/json")
         else:
             return abort(404)
@@ -284,3 +285,32 @@ def get_disqus_sso_api():
     except MethodNotAllowed as e:
         e.message = "Disqus keys are missing"
         return error.format_exception(e, target='DISQUS_SSO', action='GET')
+
+
+@jsonpify
+@blueprint.route('/project/<project_id>/task/<task_id>/usertaskdata')
+def get_user_task_data(project_id, task_id):
+    int_task_id = int(task_id)
+    user_data = get_user_id_or_ip()
+    project_from_repo = project_repo.get_by_shortname(project_id)
+    task_run_data = task_repo.get_task_run_by(project_id=project_from_repo.id, task_id=int_task_id, user_id=user_data['user_id'])
+    current_app.logger.info(task_run_data)
+    all_task_run_data = task_repo.filter_task_runs_by(project_id=project_from_repo.id, user_id=user_data['user_id'])
+    current_app.logger.info(all_task_run_data)
+    before = 0
+    after = 100000000
+    if all_task_run_data is not None:
+        for run in all_task_run_data:
+            current_app.logger.info(run)
+            if before < run.task_id < int_task_id:
+                before = run.task_id
+            if int_task_id < run.task_id < after:
+                after = run.task_id
+    else:
+        current_app.logger.info("all_task_run_data was none")
+    current_app.logger.info(before)
+    current_app.logger.info(after)
+    if task_run_data is not None:
+        return Response(json.dumps({'id': task_run_data.id, 'info': task_run_data.info, 'before': before, 'after': after}), mimetype='application/json')
+    else:
+        return Response(json.dumps({'info': '', 'before': before, 'after': after}), mimetype='application/json')
