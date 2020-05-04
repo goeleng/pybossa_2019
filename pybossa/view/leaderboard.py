@@ -17,15 +17,18 @@
 # along with PYBOSSA.  If not, see <http://www.gnu.org/licenses/>.
 """Leaderboard view for PYBOSSA."""
 from flask import Blueprint, current_app, request, abort
-from flask_login import current_user
+from flask_login import login_required, current_user
 from pybossa.cache import users as cached_users
 from pybossa.util import handle_content_type
+from pybossa.util import admin_required
 
 blueprint = Blueprint('leaderboard', __name__)
 
 
 @blueprint.route('/')
 @blueprint.route('/window/<int:window>')
+@login_required
+@admin_required
 def index(window=0):
     """Get the last activity from users and projects."""
     if current_user.is_authenticated():

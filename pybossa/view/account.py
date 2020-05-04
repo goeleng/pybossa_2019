@@ -47,9 +47,10 @@ from pybossa.util import redirect_content_type
 from pybossa.util import get_avatar_url
 from pybossa.util import url_for_app_type
 from pybossa.util import fuzzyboolean
+from pybossa.util import admin_required
 from pybossa.cache import users as cached_users
 from pybossa.auth import ensure_authorized_to
-from pybossa.jobs import send_mail, export_userdata, delete_account
+from pybossa.jobs import send_mail, export_userdata, delete_account, deactivate_account
 from pybossa.core import user_repo, ldap
 from pybossa.feed import get_update_feed
 from pybossa.messages import *
@@ -68,6 +69,8 @@ super_queue = Queue('super', connection=sentinel.master)
 
 @blueprint.route('/')
 @blueprint.route('/page/<int:page>')
+@login_required
+@admin_required
 def index(page=1):
     """Index page for all PYBOSSA registered users."""
 
@@ -321,6 +324,7 @@ def register():
     form.consent.label = msg
     msg_contact_consent = "Hiermit akzeptiere ich, dass ich im Rahmen des Crowdsourcing Projekts durch das KIT-Archiv kontaktiert werden darf."
     form.contact_consent.label = msg_contact_consent
+    print(form.contact_consent)
     if request.method == 'POST' and form.validate():
         if current_app.config.upref_mdata:
             user_pref, metadata = get_user_pref_and_metadata(form.name.data, form)
@@ -412,7 +416,8 @@ def _create_account(user_data, ldap_disabled=True):
                                name=user_data['name'],
                                email_addr=user_data['email_addr'],
                                valid_email=True,
-                               consent=user_data['consent'])
+                               consent=user_data['consent'],
+                               contact_consent=user_data['contact_consent'])
 
     if user_data.get('user_pref'):
         new_user.user_pref = user_data['user_pref']
@@ -894,6 +899,28 @@ def reset_api_key(name):
         csrf = dict(form=dict(csrf=generate_csrf()))
         return jsonify(csrf)
 
+@blueprint.route('/<name>/deactivate')
+@login_required
+def deactivate(name):
+    """
+    deactivate user account.
+    """
+    user = user_repo.get_by_name(name)
+    if not user:
+        return abort(404)
+    if current_user.name != name:
+        return abort(403)
+
+    super_queue.enqueue(deactivate_account, user.id)
+
+    if (request.headers.get('Content-Type') == 'application/json' or
+        request.args.get('response_format') == 'json'):
+
+        response = dict(job='enqueued', template='account/delete.html')
+        return handle_content_type(response)
+    else:
+        return redirect(url_for('account.signout'))
+
 
 @blueprint.route('/<name>/delete')
 @login_required
@@ -916,6 +943,28 @@ def delete(name):
         return handle_content_type(response)
     else:
         return redirect(url_for('account.signout'))
+
+
+@blueprint.route('/<name>/deleteAdmin')
+@login_required
+@admin_required
+def delete_admin(name):
+    """
+    Delete user account.
+    """
+    user = user_repo.get_by_name(name)
+    if not user:
+        return abort(404)
+    if current_user.name == name:
+        return abort(403)
+
+    super_queue.enqueue(delete_account, user.id)
+
+    if (request.headers.get('Content-Type') == 'application/json' or
+        request.args.get('response_format') == 'json'):
+
+        response = dict(job='enqueued', template='account/delete.html')
+        return handle_content_type(response)
 
 
 @blueprint.route('/save_metadata/<name>', methods=['POST'])

@@ -792,17 +792,15 @@ def push_notification(project_id, **kwargs):
                                launch_url=kwargs['launch_url'],
                                web_buttons=kwargs['web_buttons'],
                                filters=filters)
-
 """Deactivate"""
-def delete_account(user_id, **kwargs):
-    """Delete user account from the system."""
+def deactivate_account(user_id, **kwargs):
+    """Deactivate user account from the system."""
     from pybossa.core import user_repo
     from pybossa.core import newsletter
     newsletter.init_app(current_app)
     user = user_repo.get(user_id)
     email = user.email_addr
     brand = current_app.config.get('BRAND')
-    #user_repo.delete(user)
     user.passwd_hash = user.passwd_hash + "1"
     user_repo.update(user)
     subject = '[%s]: Ihr Konto wurde deaktiviert' % brand
@@ -811,6 +809,50 @@ def delete_account(user_id, **kwargs):
     Ihre Daten und Beiträge werden, sofern keine Aufforderung zur Löschung von Ihnen erfolgt, bis zum Abschluss des Projekts 2021 gespeichert.\n\n
     Falls Sie Ihre Entscheidung revidieren und  sich erneut anmelden wollen, können Sie über die Funktion „Passwort vergessen“ ein neues Passwort generieren:\n\n
     https://crowdsourcing.archiv.kit.edu/account/forgot-password\n\nAnschließend haben Sie wieder Zugriff auf Ihre Beiträge.\n\n
+    Vielen Dank, dass Sie unsere Arbeit durch Ihre Beiträge unterstützt haben. Bei Fragen zum weiteren Verlauf oder dem aktuellen Stand des Projekts können Sie uns unter den unten genannten Adressdaten kontaktieren.\n\n
+    Mit freundlichen Grüßen\n
+    Ihr KIT-Archiv\n\n
+    Karlsruher Institut für Technologie (KIT) \n
+    Allgemeine Services (AServ)\n
+    KIT-Archiv \n
+    Kaiserstraße 12 \n
+    76131 Karlsruhe\n
+    Telefon: +49 721 608-45443 \n
+    Fax: +49 721 608-994009 \n
+    E-Mail: info@archiv.kit.edu \n
+    Web: http://www.archiv.kit.edu \n
+    \n
+    Sitz der Körperschaft: \n
+    Kaiserstr. 12, 76131 Karlsruhe \n
+    \n
+    KIT – Die Forschungsuniversität in der Helmholtz-Gemeinschaft"""
+    if current_app.config.get('MAILCHIMP_API_KEY'):
+        mailchimp_deleted = newsletter.delete_user(email)
+        if not mailchimp_deleted:
+            body += '\nWe could not delete your Mailchimp account, please contact us to fix this issue.'
+    if current_app.config.get('DISQUS_SECRET_KEY'):
+        body += '\nDisqus does not provide an API method to delete your account. You will have to do it by hand yourself in the disqus.com site.'
+    recipients = [email]
+    if current_app.config.get('ADMINS'):
+        for em in current_app.config.get('ADMINS'):
+            recipients.append(em)
+    mail_dict = dict(recipients=recipients, subject=subject, body=body)
+    send_mail(mail_dict)
+
+
+"""DELETE"""
+def delete_account(user_id, **kwargs):
+    """Delete user account from the system."""
+    from pybossa.core import user_repo
+    from pybossa.core import newsletter
+    newsletter.init_app(current_app)
+    user = user_repo.get(user_id)
+    email = user.email_addr
+    brand = current_app.config.get('BRAND')
+    user_repo.delete(user)
+    subject = '[%s]: Ihr Konto wurde gelöscht' % brand
+    mailchimp_deleted = True
+    body = """Hallo,\nIhr Benutzerkonto für das Crowdsourcing-Projekt des KIT-Archivs wurde gelöscht. \n\n
     Vielen Dank, dass Sie unsere Arbeit durch Ihre Beiträge unterstützt haben. Bei Fragen zum weiteren Verlauf oder dem aktuellen Stand des Projekts können Sie uns unter den unten genannten Adressdaten kontaktieren.\n\n
     Mit freundlichen Grüßen\n
     Ihr KIT-Archiv\n\n

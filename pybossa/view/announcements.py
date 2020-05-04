@@ -18,15 +18,18 @@
 """Announcements view for PYBOSSA."""
 from flask import Blueprint, current_app
 from flask import render_template
-from flask_login import current_user
+from flask_login import login_required, current_user
 from pybossa.cache import users as cached_users
 from pybossa.util import handle_content_type
+from pybossa.util import admin_required
 from pybossa.core import announcement_repo
 
 
 blueprint = Blueprint('announcements', __name__)
 
 @blueprint.route('/')
+@login_required
+@admin_required
 def show_announcements():
     """Show all announcements"""
     announcements = announcement_repo.get_all_announcements()
